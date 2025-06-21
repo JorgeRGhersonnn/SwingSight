@@ -17,7 +17,7 @@ class BallProperties:
 	diameter: float = 0.0427	#m
 	drag_coefficient: float = 0.47	
 	lift_coefficient: float = 0.25
-	area: float = None
+	area: float
 	
 	def post_init(self):
 		if self.area is None:
@@ -33,13 +33,13 @@ class LaunchParameters:
 	
 class EnvironmentalConditions:
 	''' Environmental conditions from weather api'''
-	temperature: float	# celsius
-	pressure: float		# Pa
-	humidity: float		
-	wind_speed: float	# m/s
+	temperature: float		# celsius
+	pressure: float			# Pa
+	humidity: float			# percent
+	wind_speed: float		# m/s
 	wind_direction: float	# deg (0=north, 90 = east)
-	altitude: float = 0.0	# m above sea level
-	air_density: float = None
+	altitude: float			# m above sea level
+	air_density: float
 	
 	def post_init(self):
 		if self.air_density is None:
@@ -66,7 +66,7 @@ class EnvironmentalConditions:
 		rho = (p_dry/(R_dry*T_kelvin))+(e_actual/(R_vapor*T_kelvin))
 		
 		# altitude correction (simplified barometric form)
-		if self.attitude > 0:
+		if self.altitude > 0:
 			rho *= np.exp(-self.altitude / 8400)
 			
 		return rho
@@ -74,7 +74,7 @@ class EnvironmentalConditions:
 class WeatherAPI:
 	''' Interface for real-world weather data'''
 	
-	def get_weather_data(lat: float, lon: float, username = "bucknelluniversity_jorge_gherson", password = "o3J08RwN3u", altitude: float = 0.0) -> EnvironmentalConditions:
+	def get_weather_data(self, lat: float, lon: float, username = "bucknelluniversity_jorge_gherson", password = "o3J08RwN3u", altitude: float = 0.0):
 		'''
 		Fetch weather data from Meteomatics API.
 		Returns simulation if no API key provided.
@@ -83,7 +83,7 @@ class WeatherAPI:
 			try:
 				now = dt.utcnow().isoformat() + "Z"
 
-            	params = {
+				params = [
 					"t_2m:C",
 					"msl_pressure:hPa",
 					"relative_humidity_2m:p",
@@ -91,40 +91,41 @@ class WeatherAPI:
 					"wind_dir_10m:d",
 					"wind_gusts_10m_1h:ms",
 					"precip_1h:mm",
-				}
-		
+				]
+
 				base_url = "https://api.meteomatics.com"
-            	params_str = ','.join(params)
+				params_str = ','.join(params)
 				coordinates = f"{lat},{lon}"
-            	url = f"{base_url}/{now}/{params_str}/{coordinates}/json"
-				
+				url = f"{base_url}/{now}/{params_str}/{coordinates}/json"
+
 				if altitude > 0:
 					coordinates = f"{lat},{lon},{altitude}"
 					url = f"{base_url}/{now}/{params_str}/{coordinates}/json"
 
-				response = requests.get(url, auth = (username, password), timeout=10)
+				response = requests.get(url, auth=(username, password), timeout=10)
 				response.raise_for_status()
 
 				data = response.json()
 
 				weather_data = {}
-			
+
 				for param_data in data["data"]:
 					param_name = param_data["parameter"]
 					value = param_data["coordinates"][0]["dates"][0]["value"]
-					weather_data["param_name"] = value
+					weather_data[param_name] = value
 
-				wind_gust = weather_data.get('wind_gusts_1m_1h:ms', 0)
-			
+				wind_gust = weather_data.get('wind_gusts_10m_1h:ms', 0)
+
 				return EnvironmentalConditions(
-					temperature = weather_data["t_2m:C"],
-					pressure = weather_data["msl_pressure:hPa"]*100, # convert hPa to Pa
-					humidity = weather_data["relative_humidity_2m:p"],
-					wind_speed = weather_data["wind_speed_10m:ms"],
+					temperature = weather_data.get["t_2m:C"],
+					pressure = weather_data.get["msl_pressure:hPa"] * 100,  # convert hPa to Pa
+					humidity = weather_data.get["relative_humidity_2m:p"],
+					wind_speed = weather_data.get("wind_speed_10m:ms", 0),
 					wind_direction = weather_data.get("wind_dir_10m:d", 0),
-					altitude = altitude
+					altitude = weather_data.get(altitude) if altitude > 0 else 0,
+					air_density = None  # will be calculated in EnvironmentalConditions
 				)
-				
+
 			except requests.exceptions.RequestException as e:
 				print(f"Meteomatics API network error: {e}")
 				print("Using simulated weather data...")
@@ -135,19 +136,19 @@ class WeatherAPI:
 				print(f"Meteomatics API error: {e}")
 				print("Using simulated weather data...")
 
-			return WeatherAPI.get_simulated_weater()
+			return WeatherAPI.get_simulated_weater(self)
 		
-	def get_simulated_weater() -> EnvironmentalConditions:
+	def get_simulated_weater(self) -> EnvironmentalConditions:
 		''' generate realistic weather conditions for sim'''
 		return EnvironmentalConditions(
 			temperature = 22.0 + np.random.uniform(-5, 8),	# 17 - 30 C
-			pressure = 101345 + np.random.uniform(-2000, 2000),
+			pressure = 101345.0 + np.random.uniform(-2000.0, 2000.0), 
 			humidity = 60.0 + np.random.uniform(-20, 30),
 			wind_speed = np.random.uniform(0,8),
 			wind_direction = np.random.uniform(0, 360)
 		)
 	
-	def get_weather_with_uncertainty(lat: float, lon: float,  username = "bucknelluniversity_jorge_gherson", password = "o3J08RwN3u", altitude: float = 0.0) -> Dict:
+	def get_weather_with_uncertainty(self, lat: float, lon: float,  username = "bucknelluniversity_jorge_gherson", password = "o3J08RwN3u", altitude: float = 0.0) -> Dict:
 		base_weather = WeatherAPI.get_weather_data(lat, lon, username, password, altitude)
 		uncertainty = {
 			"temperature_std": 0.5,
@@ -164,7 +165,7 @@ class WeatherAPI:
 class ClubSensor: 
 	''' Simulated mounted sensor'''
 	
-	def measure_ball_speed()-> float:
+	def measure_ball_speed(self)-> float:
 		'''
 		Simulate sensor measurement of ball initial speed. 
 		In real implementation, this would interface with hardware
@@ -361,7 +362,7 @@ class GolfBallTrajectorySimulator:
 			"num_simulations": len(landing_points)
 		}
 	
-	def run_complete_simulation(lat: float = 40.7128, lon: float = -74.0060, api_key: Optional[str] = None) -> Dict:
+	def run_complete_simulation(self, lat = 40.7128, lon: float = -74.0060, api_key: Optional[str] = None) -> Dict:
 		'''
 		Complete simulation pipeline w/ sensor input and weather API
 		'''
@@ -370,12 +371,12 @@ class GolfBallTrajectorySimulator:
 	
 		# get sensor measurement
 		print("Reading club sensor...")
-		ball_speed = ClubSensor.measure_ball_speed()
+		ball_speed = ClubSensor.measure_ball_speed(self)
 		print(f"Initial ball speed: {ball_speed:.1f} m/s ({ball_speed*2.237:.1f} mph")
 		
 		# weather data
 		print("\nFetching weather conditions...")
-		weather = WeatherAPI.get_weather_data(lat, lon, api_key)
+		weather = WeatherAPI.get_weather_data(lat, lon, username="bucknelluniversity_jorge_gherson", password="o3J08RwN3u")
 		print(f"Temperature: {weather.temperature:.1f} C")
 		print(f"Pressure: {weather.pressure/1000:.1f} hPa")
 		print(f"Humidity: {weather.humidity:.1f}%")
@@ -423,6 +424,8 @@ class GolfBallTrajectorySimulator:
 			"launch_params": launch, 
 			"ball_properties": ball
 		}
+		
+
 		
 		
 		
