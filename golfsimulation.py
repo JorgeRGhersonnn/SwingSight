@@ -11,18 +11,20 @@ import json
 import datetime as dt
 import mateomatics.api as api
 
+@dataclass
 class BallProperties:
 	'''Golf ball physical properties'''
 	mass: float = 0.0459		#kg
 	diameter: float = 0.0427	#m
 	drag_coefficient: float = 0.47	
 	lift_coefficient: float = 0.25
-	area: float
+	area: float = None 	# m^2, calculated from diameter
 	
 	def post_init(self):
 		if self.area is None:
 			self.area = np.pi * (self.diameter/2)**2
-					
+
+@dataclass			
 class LaunchParameters:
 	''' Launch Conditions '''
 	initial_speed: float	# m/s from club sensor
@@ -31,6 +33,7 @@ class LaunchParameters:
 	backspin_rpm: float = 2500.0	# RPM
 	sidespin_rpm: float = 0.0
 	
+@dataclass
 class EnvironmentalConditions:
 	''' Environmental conditions from weather api'''
 	temperature: float		# celsius
@@ -81,7 +84,7 @@ class WeatherAPI:
 		'''
 		if username and password:
 			try:
-				now = dt.utcnow().isoformat() + "Z"
+				now = dt.datetime.utcnow().isoformat() + "Z"
 
 				params = [
 					"t_2m:C",
@@ -117,9 +120,9 @@ class WeatherAPI:
 				wind_gust = weather_data.get('wind_gusts_10m_1h:ms', 0)
 
 				return EnvironmentalConditions(
-					temperature = weather_data.get["t_2m:C"],
-					pressure = weather_data.get["msl_pressure:hPa"] * 100,  # convert hPa to Pa
-					humidity = weather_data.get["relative_humidity_2m:p"],
+					temperature = weather_data.get("t_2m:C"),
+					pressure = weather_data.get("msl_pressure:hPa" * 100),  # convert hPa to Pa
+					humidity = weather_data.get("relative_humidity_2m:p"),
 					wind_speed = weather_data.get("wind_speed_10m:ms", 0),
 					wind_direction = weather_data.get("wind_dir_10m:d", 0),
 					altitude = weather_data.get(altitude) if altitude > 0 else 0,
@@ -136,9 +139,9 @@ class WeatherAPI:
 				print(f"Meteomatics API error: {e}")
 				print("Using simulated weather data...")
 
-			return WeatherAPI.get_simulated_weater(self)
+			return WeatherAPI.get_simulated_weather(self)
 		
-	def get_simulated_weater(self) -> EnvironmentalConditions:
+	def get_simulated_weather(self) -> EnvironmentalConditions:
 		''' generate realistic weather conditions for sim'''
 		return EnvironmentalConditions(
 			temperature = 22.0 + np.random.uniform(-5, 8),	# 17 - 30 C
@@ -148,7 +151,7 @@ class WeatherAPI:
 			wind_direction = np.random.uniform(0, 360)
 		)
 	
-	def get_weather_with_uncertainty(self, lat: float, lon: float,  username = "bucknelluniversity_jorge_gherson", password = "o3J08RwN3u", altitude: float = 0.0) -> Dict:
+	def get_weather_with_uncertainty(self, lat: float, lon: float,  username: str = "bucknelluniversity_jorge_gherson", password = "o3J08RwN3u", altitude: float = 0.0) -> Dict:
 		base_weather = WeatherAPI.get_weather_data(lat, lon, username, password, altitude)
 		uncertainty = {
 			"temperature_std": 0.5,
@@ -162,6 +165,7 @@ class WeatherAPI:
 			"base_conditions": base_weather, 
 			"uncertainty": uncertainty
 		}
+
 class ClubSensor: 
 	''' Simulated mounted sensor'''
 	
@@ -250,6 +254,7 @@ class GolfBallTrajectorySimulator:
 		
 		def hit_ground(t, state):
 			return state[2]		#z coordinate
+		
 		hit_ground.terminal = True
 		hit_ground.direction = -1
 		
@@ -258,7 +263,7 @@ class GolfBallTrajectorySimulator:
 			[0, tmax],
 			init_state,
 			events = hit_ground, 
-			dense_output=True,
+			dense_output = True,
 			rtol = 1e-8,
 			atol= 1e-10
 		)
