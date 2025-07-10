@@ -378,96 +378,129 @@ class GolfBallTrajectorySimulator:
 			"num_simulations": len(landing_points)
 		}
 	
-	def run_complete_simulation(self, lat = 40.7128, lon: float = -74.0060, api_key: Optional[str] = None) -> Dict:
-		'''
-		Complete simulation pipeline w/ sensor input and weather API
-		'''
-		print("Golf Ball Trajectory Simulation Starting")
-		print("=" * 50)
-	
-		# get sensor measurement
-		print("Reading club sensor...")
-		ball_speed = ClubSensor.measure_ball_speed(self)
-		print(f"Initial ball speed: {ball_speed:.1f} m/s ({ball_speed*2.237:.1f} mph")
-		
-		# weather data
-		print("\nFetching weather conditions...")
-		weather = WeatherAPI.get_weather_data(lat, lon, username="bucknelluniversity_jorge_gherson", password="o3J08RwN3u")
-		print(f"Temperature: {weather.temperature:.1f} C")
-		print(f"Pressure: {weather.pressure/1000:.1f} hPa")
-		print(f"Humidity: {weather.humidity:.1f}%")
-		print(f"Wind: {weather.wind_speed:.1f} m/s at {weather.wind_direction:.0f}°")
-		print(f"Air Density: {weather.air_density:.3f} kg/m^3")
-		
-		# set up simulation parameters
-		ball = BallProperties()
-		launch = LaunchParameters(
-			initial_speed = ball_speed,
-			launch_angle = 12.0, 		# typical driver angle
-			backspin_rpm = 2500, 		# typical driver backspin
-			azimuth_angle = 0.0 		# straight shot
-		)
-	
-		# trajectory sim
-		print("\nRunning trajectory simulation...")
-		simulator = GolfBallTrajectorySimulator(ball, launch, weather)
-		trajectory = simulator.simulate()
-		
-		# calculate landing radius
-		print("Calculating landing radius distribution...")
-		landing_stats = simulator.calculate_landing_radius(num_simulations = 500)
-		
-		# results 
-		print("\n" + "=" *50)
-		print("SIMULATION RESULTS")
-		print("="*50)
-		print(f"Flight time: {trajectory['flight_time']:.2f} seconds")
-		print(f"Maximum height: {trajectory['max_height']:.1f} m")
-		print(f"Total distance: {trajectory['total_distance']:.1f} m")
-		print(f"Landing Point: ({trajectory['landing_point'][0]:.1f}, {trajectory['landing_point'][1]:.1f}) m")
-		
-		print(f"\nLANDING RADIUS ANALYSIS:")
-		print(f"50% of shots within: {landing_stats['radius_50']:.1f} m")
-		print(f"90% of shots within: {landing_stats['radius_90']:.1f} m")
-		print(f"95% of shots within: {landing_stats['radius_95']:.1f} m")
-		print(f"Standard Deviation X: ±{landing_stats['std_x']:.1f} m")
-		print(f"Standard Deviation Y: ±{landing_stats['std_y']:.1f} m")
-		
-		return {
-			"trajectory": trajectory,
-			"landing_stats": landing_stats,
-			"weather": weather, 
-			"launch_params": launch, 
-			"ball_properties": ball
-		}
-	'''	
-	def plot_results(trajectory):
-		x = trajectory['x']
-		y = trajectory['y']
-		z = trajectory['z']
-		t = trajectory['time']
-		
-		fig = plt.figure(figsize=(14, 6))
-
-		ax = fig.add_subplot(121, projection='3d')
-		ax.plot(x, y, z, label='Trajectory', color='b')
-		ax.set_xlabel('X Position (m)')
-		ax.set_ylabel('Y Position (m)')
-		ax.set_zlabel('Z Position (m)')
-		ax.set_title('3D Golf Ball Trajectory')
-		ax.legend()
-		ax.grid()
-
-		# 2d side view
-		ax2 = fig.add_subplot(122)
-		ax2.plot(x, z)
-		ax2.set_xlabel('X Position (m)')
-		ax2.set_ylabel('Z Position (m)')
-		ax2.set_title('Top-Down View of Trajectory')
-		ax2.grid(True)
-
-		plt.tight_layout()
-		plt.show()
+def run_complete_simulation(self, lat = 40.7128, lon: float = -74.0060, api_key: Optional[str] = None) -> Dict:
 	'''
+	Complete simulation pipeline w/ sensor input and weather API
+	'''
+	print("Golf Ball Trajectory Simulation Starting")
+	print("=" * 50)
+	
+	# get sensor measurement
+	print("Reading club sensor...")
+	ball_speed = ClubSensor.measure_ball_speed(self)
+	print(f"Initial ball speed: {ball_speed:.1f} m/s ({ball_speed*2.237:.1f} mph")
 		
+	# weather data
+	print("\nFetching weather conditions...")
+	weather = WeatherAPI.get_weather_data(lat, lon, username="bucknelluniversity_jorge_gherson", password="o3J08RwN3u")
+	print(f"Temperature: {weather.temperature:.1f} C")
+	print(f"Pressure: {weather.pressure/1000:.1f} hPa")
+	print(f"Humidity: {weather.humidity:.1f}%")
+	print(f"Wind: {weather.wind_speed:.1f} m/s at {weather.wind_direction:.0f}°")
+	print(f"Air Density: {weather.air_density:.3f} kg/m^3")
 		
+	# set up simulation parameters
+	ball = BallProperties()
+	launch = LaunchParameters(
+		initial_speed = ball_speed,
+		launch_angle = 12.0, 		# typical driver angle
+		backspin_rpm = 2500, 		# typical driver backspin
+		azimuth_angle = 0.0 		# straight shot
+	)
+	
+	# trajectory sim
+	print("\nRunning trajectory simulation...")
+	simulator = GolfBallTrajectorySimulator(ball, launch, weather)
+	trajectory = simulator.simulate()
+		
+	# calculate landing radius
+	print("Calculating landing radius distribution...")
+	landing_stats = simulator.calculate_landing_radius(num_simulations = 500)
+		
+	# results 
+	print("\n" + "=" *50)
+	print("SIMULATION RESULTS")
+	print("="*50)
+	print(f"Flight time: {trajectory['flight_time']:.2f} seconds")
+	print(f"Maximum height: {trajectory['max_height']:.1f} m")
+	print(f"Total distance: {trajectory['total_distance']:.1f} m")
+	print(f"Landing Point: ({trajectory['landing_point'][0]:.1f}, {trajectory['landing_point'][1]:.1f}) m")
+		
+	print(f"\nLANDING RADIUS ANALYSIS:")
+	print(f"50% of shots within: {landing_stats['radius_50']:.1f} m")
+	print(f"90% of shots within: {landing_stats['radius_90']:.1f} m")
+	print(f"95% of shots within: {landing_stats['radius_95']:.1f} m")
+	print(f"Standard Deviation X: ±{landing_stats['std_x']:.1f} m")
+	print(f"Standard Deviation Y: ±{landing_stats['std_y']:.1f} m")
+		
+	return {
+		"trajectory": trajectory,
+		"landing_stats": landing_stats,
+		"weather": weather, 
+		"launch_params": launch, 
+		"ball_properties": ball
+	}
+
+if __name__ == "__main__":
+	results = run_complete_simulation(
+		lat=40.7128, 
+		lon=-74.0060,
+		#username = "bucknelluniversity_jorge_gherson",
+		#password = "o3J08RwN3u",
+		#altitude = 0.0	# sea level for simulation
+	)
+	
+	fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 12))
+
+	# plot 1: 3d results 
+	traj = results['trajectory']
+	ax1.plot(traj['x'], traj['z'], 'b-', linewidth = 2, label = 'Ball Trajectory')
+	ax1.set_xlabel('Horizontal Distance (m)')
+	ax1.set_ylabel('Vertical Height (m)')
+	ax1.set_title('3D Golf Ball Trajectory')
+	ax1.grid(True, alpha = 0.3)
+	ax1.legend()
+
+	# plot 2: landing distribution
+	if 'landing_points' in results['landing_stats']:
+		landing_points = results['landing_stats']['landing_points']
+		ax2.scatter(landing_points[:, 0], landing_points[:, 1], alpha=0.5, s=10, c = 'red', label='Landing Points')
+		
+		# draw radius circles
+		mean_x, mean_y = results['landing_stats']['mean_landing']
+		circle_50 = plt.Circle((mean_x, mean_y), results['landing_stats']['radius_50'], color='green', fill=False, linestyle='-', label='50% Radius')
+		circle_90 = plt.Circle((mean_x, mean_y), results['landing_stats']['radius_90'], color='orange', fill=False, linestyle='--', label='90% Radius')
+		circle_95 = plt.Circle((mean_x, mean_y), results['landing_stats']['radius_95'], color='red', fill=False, linestyle=':', label='95% Radius')
+
+		ax2.add_patch(circle_50)
+		ax2.add_patch(circle_90)
+		ax2.add_patch(circle_95)
+
+		ax2.scatter(mean_x, mean_y, color='blue', s=100, marker = 'x', label='Mean Landing Point')
+		ax2.set_xlabel('X Landing (m)')
+		ax2.set_ylabel('Y Landing (m)')
+		ax2.set_title('Landing Distribution')
+		ax2.grid(True, alpha=0.3)
+		ax2.legend()
+		ax2.axis('equal')  # equal aspect ratio for circles
+	
+	# plot 3: Top view traj
+	ax3.plot(traj['x'], traj['y'], 'g-', linewidth = 2, label = 'Top View Trajectory')
+	ax3.set_xlabel('Horizontal Distance (m)')
+	ax3.set_ylabel('Lateral Distance (m)')
+	ax3.set_title('Top View Golf Ball Trajectory')
+	ax3.grid(True, alpha = 0.3)
+	ax3.legend()
+	ax3.axis('equal')  # equal aspect ratio
+
+	#plot 4: height vs time 
+	ax4.plot(traj['time'], traj['z'], 'm-', linewidth = 2, label = 'Height vs Time')
+	ax4.set_xlabel('Time (s)')
+	ax4.set_ylabel('Height (m)')
+	ax4.set_title('Height vs Time')
+	ax4.grid(True, alpha = 0.3)
+	ax4.legend()
+
+	plt.tight_layout()
+	plt.show()
+

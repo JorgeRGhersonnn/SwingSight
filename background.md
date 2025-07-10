@@ -25,7 +25,7 @@ Assuming air drag is not negligible and a possibility for spinning (i.e., magnus
 
 $$
 \begin{equation}
-\vec{F}_\text{grav} + \vec{F}_\text{drag} + \vec{F}_\text{magnus} = m \frac{\partial \vec{v}}{\partial t}
+    \vec{F}_\text{grav} + \vec{F}_\text{drag} + \vec{F}_\text{magnus} = m \frac{\partial \vec{v}}{\partial t}
 \end{equation}
 $$
 
