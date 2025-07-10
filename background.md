@@ -11,7 +11,7 @@ $$
 \begin{equation}
     \sum_i \vec{F}_i = \frac{\partial \vec{p}}{\partial t},
 \end{equation}
-$$(NII)
+$$
 
 where $\vec{F}$ represents the Force vector, and $\vec{p}$ represents the ball's momentum over time. Now, we assume that the ball's mass is invariant throughout its trajectory, so it is independent of time. Since $\vec{p} = m\vec{v}$, the right-hand-side becomes
 

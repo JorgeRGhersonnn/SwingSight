@@ -18,7 +18,7 @@ class BallProperties:
 	diameter: float = 0.0427	#m
 	drag_coefficient: float = 0.47	
 	lift_coefficient: float = 0.25
-	area: float = None 	# m^2, calculated from diameter
+	area: float = np.pi * (diameter/2)**2	# m^2, calculated from diameter
 	
 	def post_init(self):
 		if self.area is None:
@@ -148,7 +148,9 @@ class WeatherAPI:
 			pressure = 101345.0 + np.random.uniform(-2000.0, 2000.0), 
 			humidity = 60.0 + np.random.uniform(-20, 30),
 			wind_speed = np.random.uniform(0,8),
-			wind_direction = np.random.uniform(0, 360)
+			wind_direction = np.random.uniform(0, 360),
+			air_density= 1.225 + np.random.uniform(-0.05, 0.05),  # kg/m^3, typical sea level value
+			altitude = 0.0	# m, sea level for simulation
 		)
 	
 	def get_weather_with_uncertainty(self, lat: float, lon: float,  username: str = "bucknelluniversity_jorge_gherson", password = "o3J08RwN3u", altitude: float = 0.0) -> Dict:
@@ -438,7 +440,7 @@ class GolfBallTrajectorySimulator:
 			"launch_params": launch, 
 			"ball_properties": ball
 		}
-		
+	'''	
 	def plot_results(trajectory):
 		x = trajectory['x']
 		y = trajectory['y']
@@ -466,6 +468,6 @@ class GolfBallTrajectorySimulator:
 
 		plt.tight_layout()
 		plt.show()
-		
+	'''
 		
 		
