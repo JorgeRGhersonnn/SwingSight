@@ -3,13 +3,13 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import solve_ivp
 import requests
 from dataclasses import dataclass
 from typing import Tuple, Optional, Dict, List
 import json
 import datetime as dt
-import mateomatics.api as api
 
 @dataclass
 class BallProperties:
@@ -121,7 +121,7 @@ class WeatherAPI:
 
 				return EnvironmentalConditions(
 					temperature = weather_data.get("t_2m:C"),
-					pressure = weather_data.get("msl_pressure:hPa" * 100),  # convert hPa to Pa
+					pressure = weather_data.get("msl_pressure:hPa")*100,  # convert hPa to Pa
 					humidity = weather_data.get("relative_humidity_2m:p"),
 					wind_speed = weather_data.get("wind_speed_10m:ms", 0),
 					wind_direction = weather_data.get("wind_dir_10m:d", 0),
@@ -219,7 +219,8 @@ class GolfBallTrajectorySimulator:
 		vx_rel = vx - self.wind_x
 		vy_rel = vy - self.wind_y
 		vz_rel = vz - self.wind_z
-		
+		v_rel = np.array([vx_rel, vy_rel, vz_rel])
+
 		v_rel_mag = np.sqrt(vx_rel**2 + vy_rel**2 + vz_rel**2)
 		
 		if v_rel_mag < 0.1: 	# avoid 0 div
@@ -231,8 +232,16 @@ class GolfBallTrajectorySimulator:
 		drag_y = -drag*(vy_rel / v_rel_mag) / self.ball.mass
 		drag_z = -drag*(vz_rel / v_rel_mag) / self.ball.mass
 		
+		# spin vector 
+		omega  = np.array([
+			0, 
+			self.backspin_rads,
+			self.sidespin_rads,
+		])
+
 		# magnus force (perp to vel and spin axis)
-		magnus_force = 0.5*self.env.air_density * self.ball.lift_coefficient * self.ball.area * v_rel_mag**2
+		S = self.ball.lift_coefficient * self.env.air_density * self.ball.area * v_rel_mag
+		magnus_force = S * np.cross(omega, v_rel)
 		
 		# Backspin contribution
 		lift_z = magnus_force * (self.backspin_rads / (self.backspin_rads +1))
@@ -430,7 +439,33 @@ class GolfBallTrajectorySimulator:
 			"ball_properties": ball
 		}
 		
+	def plot_results(trajectory):
+		x = trajectory['x']
+		y = trajectory['y']
+		z = trajectory['z']
+		t = trajectory['time']
+		
+		fig = plt.figure(figsize=(14, 6))
 
+		ax = fig.add_subplot(121, projection='3d')
+		ax.plot(x, y, z, label='Trajectory', color='b')
+		ax.set_xlabel('X Position (m)')
+		ax.set_ylabel('Y Position (m)')
+		ax.set_zlabel('Z Position (m)')
+		ax.set_title('3D Golf Ball Trajectory')
+		ax.legend()
+		ax.grid()
+
+		# 2d side view
+		ax2 = fig.add_subplot(122)
+		ax2.plot(x, z)
+		ax2.set_xlabel('X Position (m)')
+		ax2.set_ylabel('Z Position (m)')
+		ax2.set_title('Top-Down View of Trajectory')
+		ax2.grid(True)
+
+		plt.tight_layout()
+		plt.show()
 		
 		
 		
